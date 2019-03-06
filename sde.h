@@ -30,9 +30,14 @@ namespace sde
 	/* ComponentBase - Base class for Components to be held by Entities.
 	*/
 
+	class Entity;
+
 	class ComponentBase
 	{
 	public:
+		ComponentBase(Entity *parent) :
+			m_parent{ parent }
+		{}
 		virtual ~ComponentBase()
 		{}
 		inline void setActive(bool b)
@@ -43,7 +48,12 @@ namespace sde
 		{
 			return m_active;
 		}
+		inline Entity *parent()
+		{
+			return m_parent;
+		}
 	private:
+		Entity *m_parent;
 		bool m_active;
 	};
 

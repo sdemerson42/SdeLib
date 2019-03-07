@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <typeindex>
 #include <map>
+#include <string>
 
 namespace sde
 {
@@ -107,6 +108,8 @@ namespace sde
 		Entity &operator=(const Entity &other) = delete;
 		Entity &operator=(Entity &&other) = delete;
 
+		// Component management
+
 		template<typename T, typename ...Args>
 		void addComponent(const Args &...args)
 		{
@@ -137,8 +140,17 @@ namespace sde
 
 			if (it != std::end(m_component)) m_component.erase(it);
 		}
+
+		// Tag management
+
+		void addTag(const std::string &tag);
+		bool hasTag(const std::string &tag) const;
+		void removeTag(const std::string &tag);
+		const std::vector<std::string> &getTags();
+
 	private:
 		std::vector<std::unique_ptr<ComponentBase>> m_component;
+		std::vector<std::string> m_tag;
 	};
 
 	/* EventSystem - A group of classes to assist in simple event passing from one

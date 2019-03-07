@@ -108,6 +108,15 @@ namespace sde
 		Entity &operator=(const Entity &other) = delete;
 		Entity &operator=(Entity &&other) = delete;
 
+		inline void setActive(bool b)
+		{
+			m_active = b;
+		}
+		inline bool active() const
+		{
+			return m_active;
+		}
+
 		// Component management
 
 		template<typename T, typename ...Args>
@@ -151,6 +160,7 @@ namespace sde
 	private:
 		std::vector<std::unique_ptr<ComponentBase>> m_component;
 		std::vector<std::string> m_tag;
+		bool m_active;
 	};
 
 	/* EventSystem - A group of classes to assist in simple event passing from one

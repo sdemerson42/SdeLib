@@ -19,10 +19,57 @@ namespace sde
 		{}
 	};
 
+	/* EventSystem - A group of classes to assist in simple event passing from one
+	instance to another. Events must inherit from the EventBase struct.
+	*/
+
+	template<typename T, typename ET>
+	using MFunc = void(T::*)(ET *);
+
+	class IFuncWrapper
+	{
+	public:
+		virtual void call(const EventBase *) = 0;
+	};
+
+	template<typename T, typename ET>
+	class FuncWrapper : public IFuncWrapper
+	{
+	public:
+		FuncWrapper(T *caller, MFunc<T, ET> func) :
+			m_caller{ caller }, m_func{ func }
+		{}
+		void call(const EventBase *evnt) override
+		{
+			(m_caller->*m_func)(static_cast<const ET*>(evnt));
+		}
+	private:
+		T *m_caller;
+		MFunc<T, ET> m_func;
+	};
+
+	class EventHandler
+	{
+	public:
+		virtual ~EventHandler();
+		template<typename T, typename ET>
+		void registerFunc(T *caller, MFunc<T, ET> func)
+		{
+			std::type_index ti{ typeid(ET) };
+			m_funcMap[ti] = std::make_shared<FuncWrapper<T, ET>>(caller, func);
+			m_receiverMap[ti].emplace_back(caller);
+		}
+		void handleEvent(EventBase *evnt);
+		void broadcast(EventBase *evnt);
+	private:
+		std::map<std::type_index, std::shared_ptr<IFuncWrapper>> m_funcMap;
+		static std::map<std::type_index, std::vector<EventHandler *>> m_receiverMap;
+	};
+
 	/* ISystem - Interface class for simulation systems.
 	*/
 
-	class ISystem
+	class ISystem : public EventHandler
 	{
 	public:
 		virtual void execute() = 0;
@@ -33,7 +80,7 @@ namespace sde
 
 	class Entity;
 
-	class ComponentBase
+	class ComponentBase : public EventHandler
 	{
 	public:
 		ComponentBase(Entity *parent) :
@@ -96,7 +143,7 @@ namespace sde
 	worked on by systems inheriting from ISystem.
 	*/
 
-	class Entity : public AutoList<Entity>
+	class Entity : public AutoList<Entity>, public EventHandler
 	{
 	public:
 		Entity()
@@ -161,52 +208,5 @@ namespace sde
 		std::vector<std::unique_ptr<ComponentBase>> m_component;
 		std::vector<std::string> m_tag;
 		bool m_active;
-	};
-
-	/* EventSystem - A group of classes to assist in simple event passing from one
-	instance to another. Events must inherit from the EventBase struct.
-	*/
-
-	template<typename T, typename ET>
-	using MFunc = void(T::*)(ET *);
-
-	class IFuncWrapper
-	{
-	public:
-		virtual void call(const EventBase *) = 0;
-	};
-
-	template<typename T, typename ET>
-	class FuncWrapper : public IFuncWrapper
-	{
-	public:
-		FuncWrapper(T *caller, MFunc<T, ET> func) :
-			m_caller{ caller }, m_func{ func }
-		{}
-		void call(const EventBase *evnt) override
-		{
-			(m_caller->*m_func)(static_cast<const ET*>(evnt));
-		}
-	private:
-		T *m_caller;
-		MFunc<T, ET> m_func;
-	};
-
-	class EventHandler
-	{
-	public:
-		virtual ~EventHandler();
-		template<typename T, typename ET>
-		void registerFunc(T *caller, MFunc<T, ET> func)
-		{
-			std::type_index ti{ typeid(ET) };
-			m_funcMap[ti] = std::make_shared<FuncWrapper<T, ET>>(caller, func);
-			m_receiverMap[ti].emplace_back(caller);
-		}
-		void handleEvent(EventBase *evnt);
-		void broadcast(EventBase *evnt);
-	private:
-		std::map<std::type_index, std::shared_ptr<IFuncWrapper>> m_funcMap;
-		static std::map<std::type_index, std::vector<EventHandler *>> m_receiverMap;
 	};
 }

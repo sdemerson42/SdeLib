@@ -84,7 +84,7 @@ namespace sde
 	{
 	public:
 		ComponentBase(Entity *parent) :
-			m_parent{ parent }
+			m_parent{ parent }, m_active{ true }
 		{}
 		virtual ~ComponentBase()
 		{}
@@ -158,6 +158,22 @@ namespace sde
 		inline void setActive(bool b)
 		{
 			m_active = b;
+			// Set / restore prior active state for components
+			if (m_active)
+			{
+				for (auto &pair : m_compActiveMap)
+				{
+					pair.first->setActive(pair.second);
+				}
+			}
+			else
+			{
+				for (auto &up : m_component)
+				{
+					m_compActiveMap[up.get()] = up->active();
+					up->setActive(false);
+				}
+			}
 		}
 		inline bool active() const
 		{
@@ -194,7 +210,13 @@ namespace sde
 				return std::type_index{ typeid(*up.get()) } == ti;
 			});
 
-			if (it != std::end(m_component)) m_component.erase(it);
+			if (it != std::end(m_component))
+			{
+				auto cmapIt = m_compActiveMap.find(it->get());
+				if (cmapIt != std::end(m_compActiveMap))
+					m_compActiveMap.erase(cmapIt);
+				m_component.erase(it);
+			}
 		}
 
 		// Tag management
@@ -208,5 +230,6 @@ namespace sde
 		std::vector<std::unique_ptr<ComponentBase>> m_component;
 		std::vector<std::string> m_tag;
 		bool m_active;
+		std::map<ComponentBase *, bool> m_compActiveMap;
 	};
 }

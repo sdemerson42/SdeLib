@@ -219,6 +219,8 @@ namespace sde
 			}
 		}
 
+		void setAllComponentsActive(bool b);
+
 		// Tag management
 
 		void addTag(const std::string &tag);

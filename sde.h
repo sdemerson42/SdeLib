@@ -100,6 +100,9 @@ namespace sde
 		{
 			return m_parent;
 		}
+		virtual void initialize()
+		{
+		}
 	private:
 		Entity *m_parent;
 		bool m_active;
@@ -220,6 +223,7 @@ namespace sde
 		}
 
 		void setAllComponentsActive(bool b);
+		void initializeAllComponents();
 
 		// Tag management
 

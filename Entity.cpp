@@ -9,6 +9,12 @@ namespace sde
 			up->setActive(b);
 	}
 
+	void Entity::initializeAllComponents()
+	{
+		for (auto &up : m_component)
+			up->initialize();
+	}
+
 	void Entity::addTag(const std::string &tag)
 	{
 		m_tag.emplace_back(tag);

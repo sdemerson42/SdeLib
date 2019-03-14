@@ -149,7 +149,8 @@ namespace sde
 	class Entity : public AutoList<Entity>, public EventHandler
 	{
 	public:
-		Entity()
+		Entity() :
+			m_active{ true }
 		{}
 		~Entity()
 		{}

@@ -108,6 +108,33 @@ namespace sde
 		bool m_active;
 	};
 
+	/* ComponentBaseNoParent - Base class for Components to be held by Entities. This variation
+	does not store a reference to a parent for ease of specialized inheritence.*/
+
+
+	class ComponentBaseNoParent : public EventHandler
+	{
+	public:
+		ComponentBaseNoParent() :
+			m_active{ true }
+		{}
+		virtual ~ComponentBaseNoParent()
+		{}
+		inline void setActive(bool b)
+		{
+			m_active = b;
+		}
+		inline bool active() const
+		{
+			return m_active;
+		}
+		virtual void initialize()
+		{
+		}
+	private:
+		bool m_active;
+	};
+
 	/* AutoList - A base class template to simplify iteration through
 	objects of the same type by allowing them to add a reference
 	to a static vector at construction time.
@@ -152,7 +179,7 @@ namespace sde
 		Entity() :
 			m_active{ true }
 		{}
-		~Entity()
+		virtual ~Entity()
 		{}
 		Entity(const Entity &other) = delete;
 		Entity(Entity &&other) = delete;
@@ -233,10 +260,107 @@ namespace sde
 		void removeTag(const std::string &tag);
 		const std::vector<std::string> &getTags();
 
-	private:
+	protected:
 		std::vector<std::unique_ptr<ComponentBase>> m_component;
 		std::vector<std::string> m_tag;
 		bool m_active;
 		std::map<ComponentBase *, bool> m_compActiveMap;
+	};
+
+	/* EntityNoParent - Variation of Entity for use with ComponentBaseNoParent
+	*/
+
+	class EntityNoParent : public AutoList<EntityNoParent>, public EventHandler
+	{
+	public:
+		EntityNoParent() :
+			m_active{ true }
+		{}
+		virtual ~EntityNoParent()
+		{}
+		EntityNoParent(const EntityNoParent &other) = delete;
+		EntityNoParent(EntityNoParent &&other) = delete;
+		EntityNoParent &operator=(const EntityNoParent &other) = delete;
+		EntityNoParent &operator=(EntityNoParent &&other) = delete;
+
+		inline void setActive(bool b)
+		{
+			m_active = b;
+			// Set / restore prior active state for components
+			if (m_active)
+			{
+				for (auto &pair : m_compActiveMap)
+				{
+					pair.first->setActive(pair.second);
+				}
+			}
+			else
+			{
+				for (auto &up : m_component)
+				{
+					m_compActiveMap[up.get()] = up->active();
+					up->setActive(false);
+				}
+			}
+		}
+		inline bool active() const
+		{
+			return m_active;
+		}
+
+		// Component management
+
+		template<typename T, typename ...Args>
+		void addComponent(const Args &...args)
+		{
+			m_component.push_back(std::make_unique<T>(args...));
+		}
+		template<typename T>
+		T *getComponent() const
+		{
+			std::type_index ti{ typeid(T) };
+
+			auto it = std::find_if(std::begin(m_component), std::end(m_component), [&](const std::unique_ptr<ComponentBaseNoParent> &up)
+			{
+				return std::type_index{ typeid(*up.get()) } == ti;
+			});
+
+			if (it != std::end(m_component)) return static_cast<T *>(it->get());
+			return nullptr;
+		}
+		template<typename T>
+		void removeComponent()
+		{
+			std::type_index ti{ typeid(T) };
+
+			auto it = std::find_if(std::begin(m_component), std::end(m_component), [&](const std::unique_ptr<ComponentBaseNoParent> &up)
+			{
+				return std::type_index{ typeid(*up.get()) } == ti;
+			});
+
+			if (it != std::end(m_component))
+			{
+				auto cmapIt = m_compActiveMap.find(it->get());
+				if (cmapIt != std::end(m_compActiveMap))
+					m_compActiveMap.erase(cmapIt);
+				m_component.erase(it);
+			}
+		}
+
+		void setAllComponentsActive(bool b);
+		void initializeAllComponents();
+
+		// Tag management
+
+		void addTag(const std::string &tag);
+		bool hasTag(const std::string &tag) const;
+		void removeTag(const std::string &tag);
+		const std::vector<std::string> &getTags();
+
+	protected:
+		std::vector<std::unique_ptr<ComponentBaseNoParent>> m_component;
+		std::vector<std::string> m_tag;
+		bool m_active;
+		std::map<ComponentBaseNoParent *, bool> m_compActiveMap;
 	};
 }

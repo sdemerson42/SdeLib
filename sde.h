@@ -232,6 +232,18 @@ namespace sde
 			return nullptr;
 		}
 		template<typename T>
+		std::vector<T *> getComponents()
+		{
+			std::vector<T *> r;
+			std::type_index ti{ typeid(T) };
+
+			for (auto &up : m_component)
+			{
+				if (std::type_index{ typeid(*up.get()) } == ti) r.push_back(static_cast<T *>(up.get()));
+			}
+			return r;
+		}
+		template<typename T>
 		void removeComponent()
 		{
 			std::type_index ti{ typeid(T) };
@@ -327,6 +339,18 @@ namespace sde
 
 			if (it != std::end(m_component)) return static_cast<T *>(it->get());
 			return nullptr;
+		}
+		template<typename T>
+		std::vector<T *> getComponents()
+		{
+			std::vector<T *> r;
+			std::type_index ti{ typeid(T) };
+
+			for (auto &up : m_component)
+			{
+				if (std::type_index{ typeid(*up.get()) } == ti) r.push_back(static_cast<T *>(up.get()));
+			}
+			return r;
 		}
 		template<typename T>
 		void removeComponent()
